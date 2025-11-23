@@ -2,10 +2,6 @@
 #
 # Builds the tegra kernel with OOTM like a daily build.
 #
-# Dependencies:
-#   git (Checking out repos)
-#   build-essential (fakeroot)
-#   devscripts (dch dpkg-parsechangelog)
 
 set -e
 
@@ -21,6 +17,9 @@ export DEBFULLNAME="Tegra Builder"
 export DEBEMAIL="tegra-builder@builder.local"
 
 ARCH=arm64
+
+# Install dependencies
+sudo apt -y install git build-essential devscripts
 
 # Start OOTM
 
