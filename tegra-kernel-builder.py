@@ -86,10 +86,12 @@ class TegraBuilder:
 
     def _init_repo(self, path, repo, branch):
         if os.path.isdir(path):
+            # If repo exists, just fetch instead of re-cloning
             with cd(path):
                 run(['git', 'restore', '.'])
                 run(['git', 'clean', '-xdf'])
-                run(['git', 'checkout', branch])
+                run(['git', 'fetch', repo, branch])
+                run(['git', 'checkout', 'FETCH_HEAD'])
         else:
             run(['git', 'clone', repo, '-b', branch, '--single-branch', path])
 
