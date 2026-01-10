@@ -145,13 +145,14 @@ class TegraBuilder:
             for binpkg in self.ootm_binpkgs:
                 bin_path = os.path.abspath(f"{self.ootm_path}/../{binpkg}_{self.ootm_version}_{self.arch}.deb")
                 module_name = binpkg.removesuffix('-dkms')
+                buildheaders = "true" if "tegra-oot" in module_name else "false"
                 dkms_string = (f"{module_name} {self.ootm_version}"
                                + f" modulename={module_name}"
                                + f" debpath={bin_path}"
                                + f" arch={self.arch}"
                                + f" rprovides={module_name}-modules"
                                + f" rprovides={binpkg}"
-                               +  " buildheaders=true"
+                               + f" buildheaders={buildheaders}"
                                +  " type=standalone")
                 with open(f"{debian_path}/dkms-versions", 'a') as f:
                     f.write(dkms_string + '\n')
