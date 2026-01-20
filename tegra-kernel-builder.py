@@ -93,7 +93,7 @@ class TegraBuilder:
                 run(['git', 'fetch', repo, branch])
                 run(['git', 'checkout', 'FETCH_HEAD'])
         else:
-            run(['git', 'clone', repo, '-b', branch, '--single-branch', path])
+            run(['git', 'clone', repo, '--depth', '1', '-b', branch, '--single-branch', path])
 
     def _install_dependencies(self):
         run(['sudo', '-E', 'apt', '-y', 'update'])
