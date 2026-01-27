@@ -65,11 +65,13 @@ class TegraBuilder:
                  ootm_repo: str,
                  ootm_branch: str,
                  kernel_repo: str,
-                 kernel_branch: str):
+                 kernel_branch: str,
+                 extra_dkms_versions=None):
         self.ootm_repo = ootm_repo
         self.ootm_branch = ootm_branch
         self.kernel_repo = kernel_repo
         self.kernel_branch = kernel_branch
+        self.extra_dkms_versions = extra_dkms_versions
 
         # Cross-building is currently not supported, so assume the package arch
         # matches the host arch
@@ -142,20 +144,25 @@ class TegraBuilder:
             # Start with dkms-versions from parent kernel, which we assume is debian_path minus -ppadev
             debian_parent = debian_path.removesuffix('-ppadev')
             run(['cp', f"{debian_parent}/dkms-versions", f"{debian_path}/dkms-versions"])
-            for binpkg in self.ootm_binpkgs:
-                bin_path = os.path.abspath(f"{self.ootm_path}/../{binpkg}_{self.ootm_version}_{self.arch}.deb")
-                module_name = binpkg.removesuffix('-dkms')
-                buildheaders = "true" if "tegra-oot" in module_name else "false"
-                dkms_string = (f"{module_name} {self.ootm_version}"
-                               + f" modulename={module_name}"
-                               + f" debpath={bin_path}"
-                               + f" arch={self.arch}"
-                               + f" rprovides={module_name}-modules"
-                               + f" rprovides={binpkg}"
-                               + f" buildheaders={buildheaders}"
-                               +  " type=standalone")
-                with open(f"{debian_path}/dkms-versions", 'a') as f:
+            with open(f"{debian_path}/dkms-versions", 'a') as f:
+                for binpkg in self.ootm_binpkgs:
+                    bin_path = os.path.abspath(f"{self.ootm_path}/../{binpkg}_{self.ootm_version}_{self.arch}.deb")
+                    module_name = binpkg.removesuffix('-dkms')
+                    buildheaders = "true" if "tegra-oot" in module_name else "false"
+                    dkms_string = (f"{module_name} {self.ootm_version}"
+                                   + f" modulename={module_name}"
+                                   + f" debpath={bin_path}"
+                                   + f" arch={self.arch}"
+                                   + f" rprovides={module_name}-modules"
+                                   + f" rprovides={binpkg}"
+                                   + f" buildheaders={buildheaders}"
+                                   +  " type=standalone")
+
                     f.write(dkms_string + '\n')
+
+                if self.extra_dkms_versions:
+                    with open(self.extra_dkms_versions, 'r') as ex_dkms:
+                        f.write(ex_dkms.read())
 
             # In-place sub was easier just running sed, and as previously stated, I am lazy
             run(['sed', '-i', '-E', f"s/^(BRANCHES=).*$/\\1{self.tegra_branch}/", f"{debian_path}/rules.d/{self.arch}.mk"])
@@ -182,7 +189,7 @@ class TegraBuilder:
 
             print("Kernel packages built successfully.")
 
-    def build(self):
+    def build(self, extra_dkms_versions=None):
         self._install_dependencies()
         self._init_ootm()
         self._build_ootm()
@@ -205,13 +212,20 @@ def main():
                         help="Kernel git repo branch to checkout.")
     parser.add_argument('--debug', action='store_true',
                         help="Debug mode prints commands as they run.")
+    parser.add_argument('--extra-dkms-versions', default=None,
+                        help="Append the contents of this dkms-versions file to the build dkms-versions.")
 
     args = parser.parse_args()
 
     global DEBUG
     DEBUG = args.debug
 
-    TegraBuilder(args.ootm_repo, args.ootm_branch, args.kernel_repo, args.kernel_branch).build()
+    tb = TegraBuilder(args.ootm_repo,
+                 args.ootm_branch,
+                 args.kernel_repo,
+                 args.kernel_branch,
+                 extra_dkms_versions=args.extra_dkms_versions)
+    tb.build()
 
 if __name__ == '__main__':
     main()
